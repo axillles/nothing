@@ -10,6 +10,8 @@ async function run(request: Request) {
   const secrets = [process.env.CRON_SECRET, process.env.MINT_JOB_SECRET].filter(Boolean)
   const auth = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!auth || !secrets.includes(auth)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // NFT receipts are opt-in: requires NFT_AUTHORITY_PRIVATE_KEY (funded) and STORAGE_API_KEY (Pinata).
+  if (process.env.NFT_MINTING_ENABLED !== 'true') return NextResponse.json({ processed: 0, disabled: true })
 
   const supabase = getAdminSupabase()
   const { data: payments, error } = await supabase.from('payments').select('*').eq('status', 'verified').is('mint_id', null).order('confirmed_at', { ascending: true }).limit(10)

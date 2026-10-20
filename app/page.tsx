@@ -10,8 +10,8 @@ import { useLeaderboard } from '@/hooks/useLeaderboard'
 const tiers = [
   { tag: 'THE MISTAKE', price: 1, text: 'You now own exactly the same amount of nothing as someone who paid $100,000.', items: ['Nothing', 'A transaction', 'Mild regret'] },
   { tag: 'NICE', price: 69, text: "Honestly, this is probably the most reasonable thing you've done today.", items: ['Nothing', 'A digital receipt', 'Bragging rights nobody asked for'] },
-  { tag: 'DEGEN', price: 420, text: "Please don't explain this to your accountant.", items: ['Nothing', 'NFT proof of nothing', 'A permanent place on the wall'] },
-  { tag: 'WHALE', price: 10000, text: 'At this price, you could have bought something. You chose nothing. Respect.', items: ['Nothing', 'Premium NFT receipt', 'Wallet immortalized on the wall'] },
+  { tag: 'DEGEN', price: 420, text: "Please don't explain this to your accountant.", items: ['Nothing', 'Numbered proof of nothing', 'A permanent place on the wall'] },
+  { tag: 'WHALE', price: 10000, text: 'At this price, you could have bought something. You chose nothing. Respect.', items: ['Nothing', 'Premium receipt', 'Wallet immortalized on the wall'] },
 ]
 
 export default function HomePage() {
@@ -42,7 +42,7 @@ export default function HomePage() {
         <h2 className="mb-11 text-center font-mono text-[13px] tracking-[0.3em] text-[var(--gold)]">FAQ</h2>
         {[
           ['Is this a scam?', "No. A scam involves deception about what you're buying. We're explicitly telling you: you are buying nothing. No product, service, investment, or return."],
-          ['What do I get?', 'Nothing. You receive a public payment record and, after the NFT worker is configured, a universal receipt NFT on Solana.'],
+          ['What do I get?', 'Nothing. You receive a public payment record and a numbered receipt.'],
           ['Is this an investment?', 'No. The project makes no promise of profit, appreciation, resale value, yield, or return.'],
           ['Why would anyone pay?', 'We have no idea. The premise is intentionally pointless; the system is designed to prove only that a payment happened.'],
         ].map(([q, a]) => <div key={q} className="border-b border-[var(--line)] py-5"><div className="text-base font-bold">{q}</div><div className="mt-2 max-w-3xl text-sm leading-6 text-[#999]">{a}</div></div>)}
