@@ -5,15 +5,23 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js'
 import {
+  createAssociatedTokenAccountIdempotentInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
 } from '@solana/spl-token'
 import Big from 'big.js'
 
-// Solana Memo v2 program. We attach the payment reference as a read-only
-// account key so the backend can deterministically associate the transaction
-// with the payment intent without trusting client-supplied payment status.
+// Solana Memo v2 program. Memo requires every account passed to it to sign,
+// so the memo carries only text; the reference rides on the transfer itself.
 export const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr')
+
+// Same convention as Solana Pay wallets: the unique reference is appended as a
+// read-only, non-signer key on the transfer instruction, which lets the backend
+// find the transaction with getSignaturesForAddress(reference).
+function withReference(instruction: TransactionInstruction, reference: PublicKey) {
+  instruction.keys.push({ pubkey: reference, isSigner: false, isWritable: false })
+  return instruction
+}
 
 export function buildSolanaPaymentTransaction(args: {
   payer: PublicKey
@@ -31,13 +39,14 @@ export function buildSolanaPaymentTransaction(args: {
   if (args.currency === 'SOL') {
     const lamports = amount.times(1_000_000_000)
     if (!lamports.round(0).eq(lamports)) throw new Error('SOL amount has too many decimals')
-    transaction.add(
+    transaction.add(withReference(
       SystemProgram.transfer({
         fromPubkey: args.payer,
         toPubkey: args.treasury,
         lamports: lamports.toNumber(),
       }),
-    )
+      args.reference,
+    ))
   } else {
     if (!args.usdcMint) throw new Error('USDC mint is required')
     const source = getAssociatedTokenAddressSync(args.usdcMint, args.payer, false)
@@ -45,13 +54,18 @@ export function buildSolanaPaymentTransaction(args: {
     const baseUnits = amount.times(1_000_000)
     if (!baseUnits.round(0).eq(baseUnits)) throw new Error('USDC amount has too many decimals')
     transaction.add(
-      createTransferCheckedInstruction(
-        source,
-        args.usdcMint,
-        destination,
-        args.payer,
-        baseUnits.toNumber(),
-        6,
+      // The treasury's USDC account may not exist yet; creating it is a no-op if it does.
+      createAssociatedTokenAccountIdempotentInstruction(args.payer, destination, args.treasury, args.usdcMint),
+      withReference(
+        createTransferCheckedInstruction(
+          source,
+          args.usdcMint,
+          destination,
+          args.payer,
+          baseUnits.toNumber(),
+          6,
+        ),
+        args.reference,
       ),
     )
   }
@@ -59,7 +73,7 @@ export function buildSolanaPaymentTransaction(args: {
   transaction.add(
     new TransactionInstruction({
       programId: MEMO_PROGRAM_ID,
-      keys: [{ pubkey: args.reference, isSigner: false, isWritable: false }],
+      keys: [],
       data: Buffer.from(`NOTHING:${args.reference.toBase58()}`),
     }),
   )

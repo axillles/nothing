@@ -9,8 +9,8 @@ import { QRCodeSVG } from 'qrcode.react'
 import { CurrencyPicker } from './CurrencyPicker'
 import type { Currency, PaymentIntent } from '@/types/payment'
 
-export function PaymentModal({ amountUsd, onClose }: { amountUsd: number; onClose: () => void }) {
-  const [currency, setCurrency] = useState<Currency>('SOL')
+export function PaymentModal({ amountUsd, initialCurrency = 'SOL', onClose }: { amountUsd: number; initialCurrency?: Currency; onClose: () => void }) {
+  const [currency, setCurrency] = useState<Currency>(initialCurrency)
   const [intent, setIntent] = useState<PaymentIntent | null>(null)
   const [status, setStatus] = useState<'idle' | 'creating' | 'signing' | 'verifying' | 'verified' | 'error'>('idle')
   const [error, setError] = useState('')
@@ -81,8 +81,9 @@ export function PaymentModal({ amountUsd, onClose }: { amountUsd: number; onClos
     setError('Payment was sent, but final confirmation is taking longer than usual. Keep this window open; the server will continue monitoring the reference.')
   }
 
+  // Watch every intent: Solana via on-chain reference scan, gateway coins via the webhook-updated status.
   useEffect(() => {
-    if (!intent || !isSolana) return
+    if (!intent) return
     let cancelled = false
     const check = async () => {
       try {
@@ -99,7 +100,20 @@ export function PaymentModal({ amountUsd, onClose }: { amountUsd: number; onClos
     check()
     const timer = window.setInterval(check, 3000)
     return () => { cancelled = true; window.clearInterval(timer) }
-  }, [intent, isSolana])
+  }, [intent])
+
+  const solanaPayUrl = useMemo(() => {
+    if (!intent?.reference || !intent.treasuryAddress || !isSolana) return null
+    return buildSolanaPayUrl({
+      recipient: new PublicKey(intent.treasuryAddress),
+      reference: new PublicKey(intent.reference),
+      amountCrypto: intent.expectedAmountCrypto,
+      currency,
+      usdcMint: intent.usdcMint ? new PublicKey(intent.usdcMint) : undefined,
+      label: 'NOTHING',
+      message: `Receipt #${String(intent.sequenceNumber).padStart(5, '0')}`,
+    })
+  }, [intent, isSolana, currency])
 
   if (status === 'verified') {
     return <Overlay><Success sequence={intent?.sequenceNumber} signature={signature} onClose={onClose} /></Overlay>
@@ -125,29 +139,22 @@ export function PaymentModal({ amountUsd, onClose }: { amountUsd: number; onClos
           </button>
         ) : isSolana ? (
           <div className="mt-6 space-y-4">
-            {intent.reference && intent.treasuryAddress && (
+            {solanaPayUrl && (
               <div className="grid gap-4 sm:grid-cols-[160px_1fr] sm:items-center">
-                <div className="rounded-[3px] border border-[var(--line)] bg-white p-3">
-                  <QRCodeSVG
-                    value={buildSolanaPayUrl({
-                      recipient: new PublicKey(intent.treasuryAddress),
-                      reference: new PublicKey(intent.reference),
-                      amountCrypto: intent.expectedAmountCrypto,
-                      currency,
-                      usdcMint: intent.usdcMint ? new PublicKey(intent.usdcMint) : undefined,
-                      label: 'NOTHING',
-                      message: `Receipt #${String(intent.sequenceNumber).padStart(5, '0')}`,
-                    })}
-                    size={136}
-                    style={{ width: '100%', height: 'auto' }}
-                  />
+                <div className="mx-auto w-full max-w-[200px] rounded-[3px] border border-[var(--line)] bg-white p-3">
+                  <QRCodeSVG value={solanaPayUrl} size={136} style={{ width: '100%', height: 'auto' }} />
                 </div>
                 <div>
-                  <div className="font-mono text-xs text-[#666]">MOBILE WALLET</div>
-                  <div className="mt-1 text-sm text-[#aaa]">Scan this QR with a Solana Pay-compatible wallet, including on your phone. The server watches the unique reference and can verify the payment without a connected browser wallet.</div>
+                  <div className="font-mono text-xs text-[#666]">SEND EXACTLY</div>
+                  <div className="mt-1 break-all font-mono text-lg text-[var(--green)]">{intent.expectedAmountCrypto} {currency}</div>
+                  <div className="mt-3 font-mono text-xs text-[#666]">TO ADDRESS</div>
+                  <CopyField value={intent.treasuryAddress ?? ''} />
+                  <a href={solanaPayUrl} className="mt-3 inline-block font-mono text-xs text-[var(--gold)] hover:underline">OPEN IN WALLET →</a>
+                  <div className="mt-2 text-xs leading-5 text-[#666]">Scan the QR or tap “Open in wallet” (Phantom, Solflare, any Solana Pay wallet). This screen updates automatically once the payment lands.</div>
                 </div>
               </div>
             )}
+            <WaitingLine />
             {!qrMode && (
               <>
                 <WalletMultiButton style={{ width: '100%', justifyContent: 'center', borderRadius: 2, background: '#161616', fontFamily: 'var(--font-mono)', fontSize: 13 }} />
@@ -163,16 +170,17 @@ export function PaymentModal({ amountUsd, onClose }: { amountUsd: number; onClos
           </div>
         ) : (
           <div className="mt-6 grid gap-5 sm:grid-cols-[180px_1fr]">
-            <div className="rounded-[3px] border border-[var(--line)] bg-white p-3">
+            <div className="mx-auto w-full max-w-[200px] rounded-[3px] border border-[var(--line)] bg-white p-3">
               <QRCodeSVG value={intent.paymentUrl || intent.paymentAddress || intent.id} size={152} style={{ width: '100%', height: 'auto' }} />
             </div>
             <div>
               <div className="font-mono text-xs text-[#666]">SEND EXACTLY</div>
               <div className="mt-1 break-all font-mono text-lg text-[var(--green)]">{intent.expectedAmountCrypto} {currency}</div>
               <div className="mt-4 font-mono text-xs text-[#666]">TO ADDRESS</div>
-              <div className="mt-1 break-all rounded-[2px] border border-[var(--line)] bg-[#050505] p-3 font-mono text-xs text-[#aaa]">{intent.paymentAddress}</div>
+              {intent.paymentAddress && <CopyField value={intent.paymentAddress} />}
               {intent.paymentUrl && <a href={intent.paymentUrl} target="_blank" rel="noreferrer" className="mt-4 inline-block text-xs text-[var(--gold)] hover:underline">OPEN GATEWAY CHECKOUT →</a>}
-              <div className="mt-5 text-xs leading-5 text-[#555]">The gateway monitors the blockchain and calls the signed webhook only after its provider-side confirmation rules.</div>
+              <div className="mt-5 text-xs leading-5 text-[#555]">This address is unique to this payment. The gateway confirms it on chain and this screen updates automatically.</div>
+              <WaitingLine />
             </div>
           </div>
         )}
@@ -195,6 +203,37 @@ function bytesToBase64(value: Uint8Array) {
   return window.btoa(binary)
 }
 
+const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK
+const solscanCluster = network && network !== 'mainnet-beta' ? `?cluster=${network}` : ''
+
+function CopyField({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard may be blocked; the address stays selectable.
+    }
+  }
+  return (
+    <button type="button" onClick={copy} title="Copy address" className="mt-1 block w-full break-all rounded-[2px] border border-[var(--line)] bg-[#050505] p-3 text-left font-mono text-xs text-[#aaa] hover:text-white">
+      {value}
+      <span className="mt-1 block text-[10px] text-[var(--gold)]">{copied ? 'COPIED' : 'TAP TO COPY'}</span>
+    </button>
+  )
+}
+
+function WaitingLine() {
+  return (
+    <div className="flex items-center gap-2 font-mono text-[11px] text-[#777]">
+      <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--green)]" />
+      WAITING FOR PAYMENT…
+    </div>
+  )
+}
+
 function Overlay({ children }: { children: React.ReactNode }) {
   return <div className="fixed inset-0 z-50 grid place-items-center overflow-auto bg-black/80 p-4 backdrop-blur-sm">{children}</div>
 }
@@ -205,7 +244,7 @@ function Success({ sequence, signature, onClose }: { sequence?: number; signatur
       <div className="font-mono text-xs tracking-[0.2em] text-[var(--green)]">PAYMENT VERIFIED.</div>
       <h2 className="mt-3 font-serif text-4xl">You own exactly what you owned before.</h2>
       <p className="mt-4 font-mono text-sm text-[#888]">Receipt #{String(sequence ?? 0).padStart(5, '0')} has been verified.</p>
-      {signature && <a className="mt-4 inline-block break-all font-mono text-xs text-[var(--gold)] hover:underline" href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">VIEW TRANSACTION →</a>}
+      {signature && <a className="mt-4 inline-block break-all font-mono text-xs text-[var(--gold)] hover:underline" href={`https://solscan.io/tx/${signature}${solscanCluster}`} target="_blank" rel="noreferrer">VIEW TRANSACTION →</a>}
       <div className="mt-7 flex gap-2 justify-center">
         <button onClick={onClose} className="rounded-[2px] border border-[var(--line)] px-5 py-3 font-mono text-xs text-[#aaa] hover:text-white">CLOSE</button>
       </div>

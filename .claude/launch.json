@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "nothing-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3000 }
+    { "name": "nothing-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3000 },
+    { "name": "nothing-dev-localnet", "runtimeExecutable": "env", "runtimeArgs": ["SOLANA_RPC_URL=http://127.0.0.1:8899", "NEXT_PUBLIC_USDC_MINT=H3rZh7izEJk3GWwjH15YiBGqau9nqjJKYFHrqBVQ6RQx", "npm", "run", "dev"], "port": 3000 }
   ]
 }

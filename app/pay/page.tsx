@@ -31,7 +31,7 @@ export default function PayPage() {
         <button onClick={() => setOpen(true)} className="mt-7 w-full rounded-[2px] bg-[var(--gold)] px-6 py-4 font-mono text-sm font-bold text-[var(--bg)]">PAY ${amountNumber.toLocaleString('en-US', { maximumFractionDigits: 2 })} WITH {currency}</button>
         <div className="mt-4 font-mono text-[10px] leading-5 text-[#555]">Network: Solana-native for SOL/USDC. Gateway-confirmed for BTC/ETH/USDT.</div>
       </div>
-      {open && <PaymentModal amountUsd={amountNumber} onClose={() => setOpen(false)} />}
+      {open && <PaymentModal amountUsd={amountNumber} initialCurrency={currency} onClose={() => setOpen(false)} />}
     </main>
   )
 }
