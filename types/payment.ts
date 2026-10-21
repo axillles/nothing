@@ -27,16 +27,14 @@ export interface Payment {
 export interface PaymentIntent {
   id: string
   sequenceNumber: number
-  chain: Chain
   currency: Currency
-  provider: string
+  /** Network the payer must send on, e.g. "Solana (SPL)". */
+  network: string
   amountUsd: number
-  expectedAmountCrypto: string
-  reference?: string
-  treasuryAddress?: string
-  usdcMint?: string
-  paymentAddress?: string
-  paymentUrl?: string
-  qrCode?: string
+  amountCrypto: string
+  /** Unique deposit address issued by the gateway for this payment. */
+  paymentAddress: string
+  /** Wallet deep link / QR payload. */
+  walletUri: string
   expiresAt?: string
 }

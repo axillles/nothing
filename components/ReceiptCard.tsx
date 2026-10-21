@@ -14,7 +14,6 @@ export function ReceiptCard({ payment }: { payment: Payment }) {
       </div>
       <div className="mt-7 flex flex-wrap gap-2">
         <a href={`/api/receipts/${payment.id}/image`} target="_blank" rel="noreferrer" className="rounded-[2px] border border-[var(--line)] px-4 py-3 font-mono text-xs text-[#aaa] hover:text-white">RECEIPT IMAGE</a>
-        {payment.transaction_signature && <a href={`https://solscan.io/tx/${payment.transaction_signature}`} target="_blank" rel="noreferrer" className="rounded-[2px] border border-[var(--line)] px-4 py-3 font-mono text-xs text-[#aaa] hover:text-white">EXPLORER →</a>}
         <Link href="/leaderboard" className="rounded-[2px] border border-[var(--line)] px-4 py-3 font-mono text-xs text-[#aaa] hover:text-white">LEADERBOARD →</Link>
       </div>
     </div>

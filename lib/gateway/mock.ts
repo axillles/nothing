@@ -1,15 +1,16 @@
 import { cryptoFromUsd, decimalsFor, getUsdRate } from '@/lib/pricing/usdRate'
+import type { Currency } from '@/types/payment'
 import type { GatewayAdapter, GatewayCreateParams, GatewayPayment, GatewayWebhookEvent } from './types'
 
+// Local-only stand-in for the gateway. Confirm a payment by POSTing
+// { providerPaymentId, currency, amountCrypto, status: "finished" } to /api/webhooks/gateway.
 export class MockGatewayAdapter implements GatewayAdapter {
   async createPayment(params: GatewayCreateParams): Promise<GatewayPayment> {
-    const providerPaymentId = `mock_${params.paymentId}`
     return {
-      providerPaymentId,
-      paymentAddress: `mock-address-${params.currency.toLowerCase()}`,
-      paymentUrl: `${params.callbackUrl}?mock=1&paymentId=${params.paymentId}`,
-      qrPayload: `nothing:${params.currency}:${params.amountUsd}:${params.paymentId}`,
+      providerPaymentId: `mock_${params.paymentId}`,
+      paymentAddress: `mock-address-${params.currency.toLowerCase()}-${params.paymentId.slice(0, 8)}`,
       amountCrypto: cryptoFromUsd(params.amountUsd, await getUsdRate(params.currency), decimalsFor(params.currency)),
+      expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
     }
   }
 
@@ -17,11 +18,18 @@ export class MockGatewayAdapter implements GatewayAdapter {
     const body = await request.json() as Record<string, unknown>
     return {
       providerPaymentId: String(body.providerPaymentId ?? body.payment_id ?? ''),
-      currency: String(body.currency ?? 'BTC').toUpperCase() as GatewayWebhookEvent['currency'],
+      currency: String(body.currency ?? 'BTC').toUpperCase() as Currency,
       amountCrypto: String(body.amountCrypto ?? body.amount ?? '0'),
-      status: String(body.status ?? 'confirmed'),
-      payerAddress: typeof body.payerAddress === 'string' ? body.payerAddress : null,
+      status: String(body.status ?? 'finished'),
       raw: body,
     }
+  }
+
+  async getStatus(): Promise<GatewayWebhookEvent | null> {
+    return null
+  }
+
+  async minimumUsd(): Promise<number | null> {
+    return null
   }
 }

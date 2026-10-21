@@ -29,3 +29,14 @@ button { font: inherit; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Amount slider: gold fill up to --fill, set inline from the component. */
+.nothing-range { -webkit-appearance: none; appearance: none; height: 28px; background: transparent; cursor: pointer; }
+.nothing-range::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, var(--gold) var(--fill, 0%), #222 var(--fill, 0%)); }
+.nothing-range::-moz-range-track { height: 4px; border-radius: 999px; background: #222; }
+.nothing-range::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--gold); }
+.nothing-range::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -9px; width: 22px; height: 22px; border-radius: 50%; background: var(--ivory); border: 3px solid var(--gold); box-shadow: 0 0 0 6px rgba(201,162,39,0.15); transition: transform 0.15s; }
+.nothing-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--ivory); border: 3px solid var(--gold); box-shadow: 0 0 0 6px rgba(201,162,39,0.15); }
+.nothing-range:active::-webkit-slider-thumb { transform: scale(1.15); }
+.nothing-range:focus-visible { outline: none; }
+.nothing-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 6px rgba(201,162,39,0.4); }

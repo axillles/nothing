@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { Hero } from '@/components/Hero'
 import { GoldButton } from '@/components/Button'
 import { PaymentModal } from '@/components/PaymentModal'
+import { NameYourPrice } from '@/components/NameYourPrice'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
+import type { Currency } from '@/types/payment'
 
 const tiers = [
   { tag: 'THE MISTAKE', price: 1, text: 'You now own exactly the same amount of nothing as someone who paid $100,000.', items: ['Nothing', 'A transaction', 'Mild regret'] },
@@ -15,7 +17,7 @@ const tiers = [
 ]
 
 export default function HomePage() {
-  const [paying, setPaying] = useState<number | null>(null)
+  const [paying, setPaying] = useState<{ amountUsd: number; currency?: Currency } | null>(null)
   return (
     <main>
       <Hero />
@@ -29,11 +31,16 @@ export default function HomePage() {
               <div className="mt-2 text-4xl font-bold tracking-tight">${tier.price.toLocaleString('en-US')}</div>
               <p className="mt-3 max-w-[420px] text-sm leading-6 text-[#999]">{tier.text}</p>
               <ul className="mt-4 space-y-1 font-mono text-xs text-[#666]">{tier.items.map((item) => <li key={item}>· {item}</li>)}</ul>
-              <button onClick={() => setPaying(tier.price)} className="mt-6 w-full rounded-[2px] border border-[var(--gold)] px-4 py-3 font-mono text-xs text-[var(--gold)] transition hover:bg-[var(--gold)] hover:text-[var(--bg)]">{tier.price === 10000 ? 'BECOME A WHALE' : `PAY $${tier.price.toLocaleString('en-US')}`}</button>
+              <button onClick={() => setPaying({ amountUsd: tier.price })} className="mt-6 w-full rounded-[2px] border border-[var(--gold)] px-4 py-3 font-mono text-xs text-[var(--gold)] transition hover:bg-[var(--gold)] hover:text-[var(--bg)]">{tier.price === 10000 ? 'BECOME A WHALE' : `PAY $${tier.price.toLocaleString('en-US')}`}</button>
             </article>
           ))}
         </div>
-        <div className="mt-5 text-center font-mono text-xs text-[#555]">Any positive USD amount is allowed above the configured minimum. The tiers are just the visual defaults.</div>
+      </section>
+
+      <section id="custom" className="mx-auto max-w-[680px] px-5 pb-16 sm:pb-24">
+        <h2 className="mb-3 text-center font-mono text-[13px] tracking-[0.3em] text-[var(--gold)]">OR NAME YOUR PRICE</h2>
+        <p className="mb-9 text-center text-sm text-[#777]">Tiers are for people who need structure. Pick any amount of nothing.</p>
+        <NameYourPrice onPay={(amountUsd, currency) => setPaying({ amountUsd, currency })} />
       </section>
 
       <Wall />
@@ -57,10 +64,10 @@ export default function HomePage() {
       <footer className="border-t border-[var(--line)] px-5 py-16 text-center text-sm text-[#444]">
         <div className="font-serif text-xl text-[var(--ivory)]">NOTHING™</div>
         <div className="mt-2">A completely unnecessary financial experience.</div>
-        <div className="mt-4 font-mono text-xs tracking-[0.1em]"><Link href="/leaderboard" className="hover:text-white">LEADERBOARD</Link> · <a href={process.env.NEXT_PUBLIC_X_URL || '#'} className="hover:text-white">X</a> · <a href={process.env.NEXT_PUBLIC_TELEGRAM_URL || '#'} className="hover:text-white">TELEGRAM</a> · SOLSCAN</div>
+        <div className="mt-4 font-mono text-xs tracking-[0.1em]"><Link href="/leaderboard" className="hover:text-white">LEADERBOARD</Link> · <a href={process.env.NEXT_PUBLIC_X_URL || '#'} className="hover:text-white">X</a> · <a href={process.env.NEXT_PUBLIC_TELEGRAM_URL || '#'} className="hover:text-white">TELEGRAM</a></div>
       </footer>
 
-      {paying !== null && <PaymentModal amountUsd={paying} onClose={() => setPaying(null)} />}
+      {paying && <PaymentModal amountUsd={paying.amountUsd} initialCurrency={paying.currency} onClose={() => setPaying(null)} />}
     </main>
   )
 }

@@ -5,7 +5,8 @@ import { ReceiptCard } from '@/components/ReceiptCard'
 
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data: payment } = await getAdminSupabase().from('payments').select('*').eq('id', id).single()
+  // Only verified payments have a receipt; an unpaid intent id must not render as "verified".
+  const { data: payment } = await getAdminSupabase().from('payments').select('*').eq('id', id).in('status', ['verified', 'minted']).maybeSingle()
   if (!payment) notFound()
   return (
     <main className="mx-auto min-h-screen max-w-[860px] px-5 py-12 sm:py-20">

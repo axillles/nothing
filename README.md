@@ -1,58 +1,43 @@
 # NOTHING.
 
-A Next.js implementation of the provided NOTHING payment concept and technical specification.
+A Next.js site where people pay crypto for nothing and get a numbered receipt and a place on the wall.
 
-The repository is intentionally split into a polished public UI and server-side payment verification layers. Client input never becomes a verified payment state: Solana payments are checked against the chain, while BTC/ETH/USDT are accepted only through a signed/validated gateway webhook.
+## How payments work
 
-## What is included
+All five currencies go through **NOWPayments**:
 
-- Landing page matching the supplied visual direction: ivory serif headlines, dark grid-like surface, gold actions, green live state, purple tier labels.
-- Five-currency picker: SOL, USDC, BTC, ETH, USDT.
-- Solana native intent + QR payment + connected-wallet signing + server-side verification.
-- QR/mobile payments are tracked server-side by the unique Solana Pay reference, so the payer does not need to connect a browser wallet or keep the desktop page open.
-- Connected-wallet signing uses a server-prepared transaction and server-side broadcast, so the browser does not need direct RPC access.
-- Gateway adapter interface with NOWPayments/Coinbase/BitPay-shaped configuration and a mock mode for local development.
-- Supabase migrations for payments, events, NFT mints, app config and a leaderboard view.
-- Realtime leaderboard + live total.
-- Receipt page and OG receipt image endpoint.
-- NFT worker endpoint with Metaplex Umi and pluggable IPFS metadata storage.
-- Upstash Redis rate limiting hooks for create/verify/webhook endpoints.
-- Vercel Cron entry point for the mint worker.
-- Sentry bootstrap files.
+| Currency | NOWPayments ticker | Network |
+|---|---|---|
+| SOL | `sol` | Solana |
+| USDC | `usdcsol` | Solana (SPL) |
+| USDT | `usdtsol` | Solana (SPL) |
+| BTC | `btc` | Bitcoin |
+| ETH | `eth` | Ethereum |
+
+1. `POST /api/payments/create` asks NOWPayments for a payment. Each payment gets its own deposit address.
+2. The payment window shows a QR (with the amount pre-filled where wallets support it), an "Open in wallet" link, the exact amount and the address.
+3. NOWPayments calls `POST /api/webhooks/gateway`, signed with HMAC-SHA512 (the IPN secret). The payment becomes `verified` only on `confirmed` / `sending` / `finished` with the full amount.
+4. Fallback: while the window is open, `GET /api/payments/status` pulls the payment from the NOWPayments API every ~10 s and applies it the same way. This covers a late webhook and lets local development work without a public URL.
+
+The browser never marks a payment as paid. Per-currency minimums come from NOWPayments (`GET /api/payments/limits`). For example, BTC is about $23.
+
+**Where the money goes:** to the payout wallet(s) configured in the NOWPayments dashboard (Settings → Payment → Payout wallets), not to an address in this repo.
 
 ## Run locally
 
 ```bash
-cp .env.example .env.local
+nvm use 24        # or: brew install node@24
 npm install
 npm run dev
 ```
 
-Apply `supabase/migrations/0001_init.sql` to a fresh Supabase project, then set `.env.local` values.
+Apply `supabase/migrations/0001_init.sql` to the Supabase project and fill `.env.local` (see `ENV-SETUP.md`).
 
-For a visual demo without real blockchain credentials, set:
+- `PAYMENT_MODE=mock`: no gateway. Confirm a payment manually by POSTing `{ "providerPaymentId": "mock_<paymentId>", "currency": "SOL", "amountCrypto": "<amount>", "status": "finished" }` to `/api/webhooks/gateway`.
+- `PAYMENT_MODE=live`: real NOWPayments. Locally the webhook cannot reach you, so status comes from the polling fallback.
 
-```env
-PAYMENT_MODE=mock
-```
+Checks: `npm run typecheck`, `npm run lint`, `npm run build`.
 
-Mock mode is deliberately separated from live mode and must not be used for production funds.
+## NFT receipts (off by default)
 
-## Production checklist
-
-1. Use a production Solana RPC provider and a dedicated treasury public key.
-2. Keep `SUPABASE_SECRET_KEY`, gateway secrets and `NFT_AUTHORITY_PRIVATE_KEY` server-only.
-3. Configure the gateway's signed webhook secret and verify provider status/amount/currency before `verified`.
-4. Test Solana on devnet first, including Phantom/Solflare and USDC.
-5. Use separate treasury and NFT mint authorities.
-6. Configure Sentry, Vercel Analytics and database backups.
-
-### Upstash / local development
-
-Upstash is optional for local development. Do not copy the literal `YOUR-REDIS.upstash.io` placeholder into `.env.local`. Leave `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` empty locally. The API will run without Redis rate limiting.
-
-For production, configure both values from an Upstash Redis database. You can also set `FAIL_CLOSED_RATE_LIMIT=true` so a Redis outage rejects requests instead of failing open.
-
-## Local setup
-
-Use Node.js 24 LTS. See `INSTALL-LOCAL.md` for the clean-install commands.
+`/api/jobs/mint` and `lib/nft/` can mint a receipt NFT on Solana. This is disabled until `NFT_MINTING_ENABLED=true`, a funded `NFT_AUTHORITY_PRIVATE_KEY` and a Pinata `STORAGE_API_KEY` are configured. The cron entry was removed from `vercel.json`; add it back when enabling.

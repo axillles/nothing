@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/jobs/scan-solana",
-      "schedule": "*/1 * * * *"
-    },
-    {
-      "path": "/api/jobs/mint",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
+{}
