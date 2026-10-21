@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import { Hero } from '@/components/Hero'
 import { GoldButton } from '@/components/Button'
@@ -74,13 +75,31 @@ export default function HomePage() {
 
 function Wall() {
   const { data } = useLeaderboard()
+  const entries = data.entries.slice(0, 4)
   return (
     <section className="mx-auto max-w-[980px] px-5 py-16 sm:py-24">
       <h2 className="mb-11 text-center font-mono text-[13px] tracking-[0.3em] text-[var(--gold)]">THE WALL OF NOTHING</h2>
-      {data.entries.length ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {data.entries.slice(0, 4).map((entry) => <div key={`${entry.rank}-${entry.payerAddress}`} className="border border-[var(--line)] bg-[var(--card)] p-4 font-mono"><div className="text-xs text-[#666]">{entry.payerAddress ? `${entry.payerAddress.slice(0, 5)}...${entry.payerAddress.slice(-4)}` : 'anonymous'}</div><div className="my-1 text-xl font-bold text-[var(--green)]">${entry.amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div><div className="text-[10px] tracking-[0.08em] text-[#555]">{entry.rank === 1 ? 'TOP NOTHING HOLDER' : 'FOR NOTHING'}</div></div>)}
-        </div>
+      {entries.length ? (
+        <motion.div layout className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <AnimatePresence initial={false}>
+            {entries.map((entry) => (
+              <motion.div
+                key={entry.payerAddress ?? 'anonymous'}
+                layout
+                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                whileHover={{ y: -4 }}
+                className="border border-[var(--line)] bg-[var(--card)]/90 p-4 font-mono backdrop-blur-sm"
+              >
+                <div className="truncate text-xs text-[#666]">{entry.payerAddress ?? 'anonymous'}</div>
+                <div className="my-1 text-xl font-bold text-[var(--green)]">${entry.amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
+                <div className="text-[10px] tracking-[0.08em] text-[#555]">{entry.rank === 1 ? 'TOP NOTHING HOLDER' : 'FOR NOTHING'}</div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       ) : (
         <div className="border border-dashed border-[var(--line)] p-8 text-center font-mono text-xs text-[#555]">THE WALL IS EMPTY · ONLY VERIFIED PAYMENTS APPEAR HERE</div>
       )}

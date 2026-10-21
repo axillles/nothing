@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
 import { CurrencyPicker } from './CurrencyPicker'
+import { NothingConfetti } from './NothingConfetti'
 import { usePaymentLimits } from '@/hooks/usePaymentLimits'
 import type { Currency, PaymentIntent } from '@/types/payment'
 
@@ -64,7 +65,7 @@ export function PaymentModal({ amountUsd, initialCurrency = 'SOL', onClose }: { 
   }, [intent, phase])
 
   if (phase === 'verified' && intent) {
-    return <Overlay onClose={onClose}><Success intent={intent} onClose={onClose} /></Overlay>
+    return <Overlay onClose={onClose}><NothingConfetti /><Success intent={intent} onClose={onClose} /></Overlay>
   }
 
   return (
