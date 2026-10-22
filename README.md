@@ -38,6 +38,15 @@ Apply `supabase/migrations/0001_init.sql` to the Supabase project and fill `.env
 
 Checks: `npm run typecheck`, `npm run lint`, `npm run build`.
 
+## Deploy
+
+The Vercel project `pay-for-nothing` is connected to `github.com/axillles/nothing`:
+
+- push to `main` deploys to production;
+- push to any other branch (or open a PR) creates a preview deployment.
+
+Environment variables are managed in Vercel → Project → Settings → Environment Variables (see `ENV-SETUP.md`). After changing `NEXT_PUBLIC_*` values, redeploy so they are rebuilt into the client bundle.
+
 ## NFT receipts (off by default)
 
 `/api/jobs/mint` and `lib/nft/` can mint a receipt NFT on Solana. This is disabled until `NFT_MINTING_ENABLED=true`, a funded `NFT_AUTHORITY_PRIVATE_KEY` and a Pinata `STORAGE_API_KEY` are configured. The cron entry was removed from `vercel.json`; add it back when enabling.
